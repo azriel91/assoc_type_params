@@ -152,16 +152,21 @@ where
     Types: TypeParamsConstrained,
     L: Logic,
     <Types as TypeParamsConstrained>::AppError: From<L::Error> + From<FrameworkError>,
+    // Why do these bounds have to be repeated?
+    // It appears Rust isn't inferring the associated type constraints from the
+    // `TypeParamsConstrained` bound.
+    <Types as TypeParamsT>::Output: Output,
+    <Types as TypeParamsT>::Input: Input,
 {
     let CmdCtx { input, output } = cmd_ctx;
 
-    output.write("Enter some input:\n")?;
+    Output::write(output, "Enter some input:\n")?;
 
-    let line = input.read()?;
+    let line = Input::read(input)?;
     let t = logic.do_work()?;
 
-    output.write("You entered: ")?;
-    output.write(&line)?;
+    Output::write(output, "You entered: ")?;
+    Output::write(output, &line)?;
 
     Ok(t)
 }
