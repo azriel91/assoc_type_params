@@ -23,27 +23,9 @@ trait Logic {
 
 /// Trait that tracks all associated types;
 trait TypeParamsT {
-    type AppError;
-    type Input;
-    type Output;
-}
-
-trait TypeParamsConstrained: TypeParamsT {
     type AppError: std::error::Error + 'static;
     type Input: Input + 'static;
     type Output: Output + 'static;
-}
-
-impl<T> TypeParamsConstrained for T
-where
-    T: TypeParamsT,
-    T::AppError: std::error::Error + 'static,
-    T::Input: Input + 'static,
-    T::Output: Output + 'static,
-{
-    type AppError = T::AppError;
-    type Input = T::Input;
-    type Output = T::Output;
 }
 
 // === Error / Value types === //
@@ -147,11 +129,11 @@ impl Logic for WorkLogic {
 fn run<Types, L>(
     cmd_ctx: &mut CmdCtx<Types>,
     logic: &mut L,
-) -> Result<L::ReturnType, <Types as TypeParamsConstrained>::AppError>
+) -> Result<L::ReturnType, Types::AppError>
 where
-    Types: TypeParamsConstrained,
+    Types: TypeParamsT,
     L: Logic,
-    <Types as TypeParamsConstrained>::AppError: From<L::Error> + From<FrameworkError>,
+    Types::AppError: From<L::Error> + From<FrameworkError>,
 {
     let CmdCtx { input, output } = cmd_ctx;
 
