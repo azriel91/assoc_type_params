@@ -28,7 +28,22 @@ trait TypeParamsT {
     type Output;
 }
 
-trait TypeParamsConstrained: TypeParamsT {
+/// Similar to `TypeParamsT`, with bounds added for compile time safety.
+///
+/// The associated types of `TypeParamsT` must be specified, otherwise we
+/// haven't told Rust that the supertrait's associated type must be exactly the
+/// same as this trait's associated types.
+///
+/// Much thanks to `@quinedot`.
+///
+/// See <https://users.rust-lang.org/t/trait-bounds-transitive-inference/105118>
+trait TypeParamsConstrained:
+    TypeParamsT<
+        AppError = <Self as TypeParamsConstrained>::AppError,
+        Input = <Self as TypeParamsConstrained>::Input,
+        Output = <Self as TypeParamsConstrained>::Output,
+    >
+{
     type AppError: std::error::Error + 'static;
     type Input: Input + 'static;
     type Output: Output + 'static;
@@ -152,21 +167,22 @@ where
     Types: TypeParamsConstrained,
     L: Logic,
     <Types as TypeParamsConstrained>::AppError: From<L::Error> + From<FrameworkError>,
-    // Why do these bounds have to be repeated?
-    // It appears Rust isn't inferring the associated type constraints from the
-    // `TypeParamsConstrained` bound.
-    <Types as TypeParamsT>::Output: Output,
-    <Types as TypeParamsT>::Input: Input,
+    //
+    // These bounds don't have to be specified individually, since Rust can infer them from
+    // `TypeParamsConstrained`.
+    //
+    // <Types as TypeParamsT>::Output: Output,
+    // <Types as TypeParamsT>::Input: Input,
 {
     let CmdCtx { input, output } = cmd_ctx;
 
-    Output::write(output, "Enter some input:\n")?;
+    output.write("Enter some input:\n")?;
 
-    let line = Input::read(input)?;
+    let line = input.read()?;
     let t = logic.do_work()?;
 
-    Output::write(output, "You entered: ")?;
-    Output::write(output, &line)?;
+    output.write("You entered: ")?;
+    output.write(&line)?;
 
     Ok(t)
 }
